@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     sync_cron: str = "*/15 * * * *"
     state_db_path: str = "ticket_sync.db"
+    dry_run: bool = False
 
     http_timeout: float = 30.0
     log_level: str = "INFO"

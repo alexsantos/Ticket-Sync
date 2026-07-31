@@ -29,6 +29,7 @@ def main() -> None:
     logger.info("  Create config: %s", settings.create_config_path)
     logger.info("  State DB:      %s", settings.state_db_path)
     logger.info("  Sync cron:     %s", settings.sync_cron)
+    logger.info("  Dry run:       %s", settings.dry_run)
 
     logger.info("Running initial sync cycle on startup")
     try:

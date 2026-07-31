@@ -154,7 +154,7 @@ def test_forwards_a_new_matching_ticket(state, search_cfg, create_cfg):
     with hr_api.client() as hr, ops_api.client() as ops:
         stats = run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg)
 
-    assert stats == {"matched": 1, "already_forwarded": 0, "forwarded": 1, "failed": 0}
+    assert stats == {"matched": 1, "already_forwarded": 0, "forwarded": 1, "would_forward": 0, "failed": 0}
     assert len(ops_api.created_tickets) == 1
     created = ops_api.created_tickets[0]
     assert created["user_id"] == 91
@@ -181,7 +181,7 @@ def test_skips_already_forwarded_ticket(state, search_cfg, create_cfg):
     with hr_api.client() as hr, ops_api.client() as ops:
         stats = run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg)
 
-    assert stats == {"matched": 1, "already_forwarded": 1, "forwarded": 0, "failed": 0}
+    assert stats == {"matched": 1, "already_forwarded": 1, "forwarded": 0, "would_forward": 0, "failed": 0}
     assert ops_api.created_tickets == []
     assert hr_api.notes == []
 
@@ -195,7 +195,7 @@ def test_ops_create_failure_is_recorded_and_not_marked_forwarded(state, search_c
     with hr_api.client() as hr, OsTicketClient("https://ops.example.com", "key", transport=httpx.MockTransport(failing_ops_handler)) as ops:
         stats = run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg)
 
-    assert stats == {"matched": 1, "already_forwarded": 0, "forwarded": 0, "failed": 1}
+    assert stats == {"matched": 1, "already_forwarded": 0, "forwarded": 0, "would_forward": 0, "failed": 1}
     assert state.has_been_forwarded(1) is False
     assert hr_api.notes == []
 
@@ -216,7 +216,7 @@ def test_note_failure_does_not_prevent_marking_forwarded(state, search_cfg, crea
     with hr_client as hr, ops_api.client() as ops:
         stats = run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg)
 
-    assert stats == {"matched": 1, "already_forwarded": 0, "forwarded": 1, "failed": 0}
+    assert stats == {"matched": 1, "already_forwarded": 0, "forwarded": 1, "would_forward": 0, "failed": 0}
     assert state.has_been_forwarded(1) is True
     assert len(ops_api.created_tickets) == 1
 
@@ -229,7 +229,7 @@ def test_paginates_across_multiple_tickets(state, search_cfg, create_cfg):
     with hr_api.client() as hr, ops_api.client() as ops:
         stats = run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg)
 
-    assert stats == {"matched": 5, "already_forwarded": 0, "forwarded": 5, "failed": 0}
+    assert stats == {"matched": 5, "already_forwarded": 0, "forwarded": 5, "would_forward": 0, "failed": 0}
     assert len(ops_api.created_tickets) == 5
     assert {state.has_been_forwarded(i) for i in range(1, 6)} == {True}
 
@@ -241,7 +241,7 @@ def test_no_matching_status_returns_early(state, search_cfg, create_cfg):
     with hr_api.client() as hr, ops_api.client() as ops:
         stats = run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg)
 
-    assert stats == {"matched": 0, "already_forwarded": 0, "forwarded": 0, "failed": 0}
+    assert stats == {"matched": 0, "already_forwarded": 0, "forwarded": 0, "would_forward": 0, "failed": 0}
     assert ops_api.created_tickets == []
 
 
@@ -253,9 +253,34 @@ def test_mixed_outcomes_across_multiple_tickets(state, search_cfg, create_cfg):
     with hr_api.client() as hr, ops_api.client() as ops:
         stats = run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg)
 
-    assert stats == {"matched": 2, "already_forwarded": 1, "forwarded": 1, "failed": 0}
+    assert stats == {"matched": 2, "already_forwarded": 1, "forwarded": 1, "would_forward": 0, "failed": 0}
     assert len(ops_api.created_tickets) == 1
     assert ops_api.created_tickets[0]["subject"].startswith("[From HR #HR-2]")
+
+
+def test_dry_run_does_not_create_ticket_or_mutate_state(state, search_cfg, create_cfg):
+    hr_api = FakeApi(tickets=[ticket_payload(1)])
+    ops_api = FakeApi()
+
+    with hr_api.client() as hr, ops_api.client() as ops:
+        stats = run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg, dry_run=True)
+
+    assert stats == {"matched": 1, "already_forwarded": 0, "forwarded": 0, "would_forward": 1, "failed": 0}
+    assert ops_api.created_tickets == []
+    assert hr_api.notes == []
+    assert state.has_been_forwarded(1) is False
+
+
+def test_dry_run_still_reports_already_forwarded_tickets(state, search_cfg, create_cfg):
+    state.record_forwarded(1, ops_ticket_id=999, ops_ticket_number="OPS-999")
+    hr_api = FakeApi(tickets=[ticket_payload(1)])
+    ops_api = FakeApi()
+
+    with hr_api.client() as hr, ops_api.client() as ops:
+        stats = run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg, dry_run=True)
+
+    assert stats == {"matched": 1, "already_forwarded": 1, "forwarded": 0, "would_forward": 0, "failed": 0}
+    assert ops_api.created_tickets == []
 
 
 # --- run_sync_cycle (settings-driven entrypoint) ---
@@ -294,7 +319,7 @@ def test_run_sync_cycle_wires_everything_from_settings(tmp_path, monkeypatch):
     finally:
         get_settings.cache_clear()
 
-    assert stats == {"matched": 1, "already_forwarded": 0, "forwarded": 1, "failed": 0}
+    assert stats == {"matched": 1, "already_forwarded": 0, "forwarded": 1, "would_forward": 0, "failed": 0}
     assert len(ops_api.created_tickets) == 1
 
     with StateStore(str(tmp_path / "state.db")) as reopened_state:

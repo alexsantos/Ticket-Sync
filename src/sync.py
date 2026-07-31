@@ -19,6 +19,7 @@ MAX_FAILURE_ATTEMPTS_BEFORE_ALERT = 3
 class ForwardOutcome(str, Enum):
     ALREADY_FORWARDED = "already_forwarded"
     FORWARDED = "forwarded"
+    WOULD_FORWARD = "would_forward"
     FAILED = "failed"
 
 
@@ -42,6 +43,7 @@ def _forward_one(
     state: StateStore,
     create_cfg: CreateConfig,
     ticket_summary: Ticket,
+    dry_run: bool = False,
 ) -> ForwardOutcome:
     hr_ticket_id = ticket_summary.ticket_id
     if state.has_been_forwarded(hr_ticket_id):
@@ -50,6 +52,11 @@ def _forward_one(
     try:
         ticket = hr.get_ticket(hr_ticket_id)
         subject, message = render_ops_payload(ticket, create_cfg)
+
+        if dry_run:
+            logger.info("[dry-run] Would forward HR ticket %s to Ops: %s", ticket.number, subject)
+            return ForwardOutcome.WOULD_FORWARD
+
         created = ops.create_ticket(
             user_id=create_cfg.user_id,
             subject=subject,
@@ -89,6 +96,7 @@ def run_sync_cycle_with(
     state: StateStore,
     search_cfg: SearchConfig,
     create_cfg: CreateConfig,
+    dry_run: bool = False,
 ) -> dict[str, int]:
     stats = {outcome.value: 0 for outcome in ForwardOutcome}
     stats["matched"] = 0
@@ -113,7 +121,7 @@ def run_sync_cycle_with(
         limit=search_cfg.page_size,
     ):
         stats["matched"] += 1
-        outcome = _forward_one(hr, ops, state, create_cfg, ticket_summary)
+        outcome = _forward_one(hr, ops, state, create_cfg, ticket_summary, dry_run=dry_run)
         stats[outcome.value] += 1
 
     logger.info("Sync cycle complete: %s", stats)
@@ -126,4 +134,4 @@ def run_sync_cycle() -> dict[str, int]:
     create_cfg = load_create_config(settings.create_config_path)
 
     with build_hr_client(settings) as hr, build_ops_client(settings) as ops, StateStore(settings.state_db_path) as state:
-        return run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg)
+        return run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg, dry_run=settings.dry_run)
