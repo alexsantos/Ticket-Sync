@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Sensitive data
+.env
+.env.*
+!.env.example
+
+# SQLite state (see docker-compose.yml's ./data bind mount)
+data/*
+!data/.gitkeep
+
+# IDEs
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/

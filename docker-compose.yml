@@ -1,0 +1,16 @@
+services:
+  ticket-sync:
+    build: .
+    container_name: ticket-sync
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Overrides whatever STATE_DB_PATH is set to in .env, to guarantee the
+      # SQLite file always lands inside the ./data bind mount below - without
+      # this it would default to a path inside the container's writable
+      # layer and every ticket would look "unforwarded" again after a restart.
+      STATE_DB_PATH: /app/data/ticket_sync.db
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro

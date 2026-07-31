@@ -1,0 +1,13 @@
+create:
+  base_url_env: OPS_API_BASE_URL     # which client to use (supports >1 target in the future)
+  dept_id: 8                          # target department in Ops osTicket
+  topic_id: 4                         # target help topic in Ops osTicket
+  user_id: 91                         # fixed "HR-Ops Bridge" service account in Ops osTicket
+  subject_template: "[From HR #{hr_number}] {hr_subject}"
+  message_template: |
+    Forwarded automatically from HR ticket #{hr_number}.
+    Original requester: {hr_requester_name} <{hr_requester_email}>
+    Closed by HR on: {hr_closed_at}
+
+    --- Original message ---
+    {hr_message}
