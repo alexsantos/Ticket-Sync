@@ -106,7 +106,7 @@ Ticket-Sync/
 
 ```yaml
 search:
-  status: closed                # resolved via GET /statuses at startup, cached
+  state: closed                 # resolved via GET /statuses at startup, cached
   dept_id: 3                    # HR department id in HR osTicket
   topic_id: 17                  # e.g. "Escalate to Ops" help topic
   # optional extra filter, only if HR uses a custom field instead of/alongside topic:

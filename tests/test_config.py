@@ -14,7 +14,7 @@ def write_yaml(tmp_path, name, content):
 def test_load_search_config_full(tmp_path):
     path = write_yaml(tmp_path, "search.yaml", """
 search:
-  status: closed
+  state: closed
   dept_id: 3
   topic_id: 17
   custom_fields:
@@ -24,7 +24,7 @@ search:
 """)
     cfg = load_search_config(path)
     assert cfg == SearchConfig(
-        status="closed",
+        state="closed",
         dept_id=3,
         topic_id=17,
         custom_fields={"route_to": "Ops"},
@@ -36,7 +36,7 @@ search:
 def test_load_search_config_defaults(tmp_path):
     path = write_yaml(tmp_path, "search.yaml", """
 search:
-  status: closed
+  state: closed
 """)
     cfg = load_search_config(path)
     assert cfg.dept_id is None
@@ -52,9 +52,9 @@ def test_load_search_config_missing_section_raises(tmp_path):
         load_search_config(path)
 
 
-def test_load_search_config_missing_status_raises(tmp_path):
+def test_load_search_config_missing_state_raises(tmp_path):
     path = write_yaml(tmp_path, "search.yaml", "search:\n  dept_id: 3\n")
-    with pytest.raises(ValueError, match="status"):
+    with pytest.raises(ValueError, match="state"):
         load_search_config(path)
 
 

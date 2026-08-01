@@ -105,7 +105,7 @@ def state(tmp_path):
 
 @pytest.fixture
 def search_cfg():
-    return SearchConfig(status="closed", dept_id=3, topic_id=17, custom_fields={}, page_size=50)
+    return SearchConfig(state="closed", dept_id=3, topic_id=17, custom_fields={}, page_size=50)
 
 
 @pytest.fixture
@@ -287,7 +287,7 @@ def test_dry_run_still_reports_already_forwarded_tickets(state, search_cfg, crea
 
 def test_run_sync_cycle_wires_everything_from_settings(tmp_path, monkeypatch):
     search_path = tmp_path / "search.yaml"
-    search_path.write_text("search:\n  status: closed\n  dept_id: 3\n  topic_id: 17\n")
+    search_path.write_text("search:\n  state: closed\n  dept_id: 3\n  topic_id: 17\n")
     create_path = tmp_path / "create.yaml"
     create_path.write_text(
         "create:\n"
@@ -305,6 +305,7 @@ def test_run_sync_cycle_wires_everything_from_settings(tmp_path, monkeypatch):
     monkeypatch.setenv("SEARCH_CONFIG_PATH", str(search_path))
     monkeypatch.setenv("CREATE_CONFIG_PATH", str(create_path))
     monkeypatch.setenv("STATE_DB_PATH", str(tmp_path / "state.db"))
+    monkeypatch.setenv("DRY_RUN", "false")
     get_settings.cache_clear()
 
     hr_api = FakeApi(tickets=[ticket_payload(1)])

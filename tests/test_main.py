@@ -25,7 +25,7 @@ class FakeScheduler:
 @pytest.fixture
 def base_env(tmp_path, monkeypatch):
     search_path = tmp_path / "search.yaml"
-    search_path.write_text("search:\n  status: closed\n")
+    search_path.write_text("search:\n  state: closed\n")
     create_path = tmp_path / "create.yaml"
     create_path.write_text(
         "create:\n  user_id: 91\n  subject_template: s\n  message_template: m\n"

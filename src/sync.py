@@ -101,9 +101,9 @@ def run_sync_cycle_with(
     stats = {outcome.value: 0 for outcome in ForwardOutcome}
     stats["matched"] = 0
 
-    status_ids = hr.resolve_status_ids(search_cfg.status)
+    status_ids = hr.resolve_status_ids(search_cfg.state)
     if not status_ids:
-        logger.error("No statuses with state '%s' found on the HR instance; nothing to search for", search_cfg.status)
+        logger.error("No statuses with state '%s' found on the HR instance; nothing to search for", search_cfg.state)
         return stats
 
     updated_after = None

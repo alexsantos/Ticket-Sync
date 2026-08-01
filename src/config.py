@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
 @dataclass
 class SearchConfig:
-    status: str
+    state: str
     dept_id: Optional[int] = None
     topic_id: Optional[int] = None
     custom_fields: dict[str, str] = field(default_factory=dict)
@@ -54,11 +54,11 @@ def load_search_config(path: str) -> SearchConfig:
     search = data.get("search") if data else None
     if not search:
         raise ValueError(f"No 'search' section defined in {path}")
-    if not search.get("status"):
-        raise ValueError(f"'search.status' is required in {path}")
+    if not search.get("state"):
+        raise ValueError(f"'search.state' is required in {path}")
 
     return SearchConfig(
-        status=search["status"],
+        state=search["state"],
         dept_id=search.get("dept_id"),
         topic_id=search.get("topic_id"),
         custom_fields=search.get("custom_fields") or {},
