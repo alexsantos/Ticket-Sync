@@ -1,4 +1,5 @@
 import json
+import logging
 
 import httpx
 import pytest
@@ -171,6 +172,25 @@ def test_forwards_a_new_matching_ticket(state, search_cfg, create_cfg):
     assert hr_api.notes[0]["ticket_id"] == 1
     assert created["number"] in hr_api.notes[0]["body"]
     assert hr_api.notes[0]["poster"] == "Ticket-Sync"
+
+
+def test_debug_logs_hr_and_ops_payloads(state, search_cfg, create_cfg, caplog):
+    hr_api = FakeApi(tickets=[ticket_payload(1)])
+    ops_api = FakeApi()
+
+    with caplog.at_level(logging.DEBUG, logger="src.sync"):
+        with hr_api.client() as hr, ops_api.client() as ops:
+            run_sync_cycle_with(hr, ops, state, search_cfg, create_cfg)
+
+    messages = [r.getMessage() for r in caplog.records]
+
+    hr_log = next(m for m in messages if m.startswith("Received HR ticket payload"))
+    assert "Broken laptop" in hr_log
+    assert "jane@example.com" in hr_log
+
+    ops_log = next(m for m in messages if m.startswith("Ops create_ticket payload"))
+    assert "[From HR #HR-1] Broken laptop" in ops_log
+    assert "'dept_id': 8" in ops_log
 
 
 def test_skips_already_forwarded_ticket(state, search_cfg, create_cfg):

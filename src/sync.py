@@ -51,19 +51,23 @@ def _forward_one(
 
     try:
         ticket = hr.get_ticket(hr_ticket_id)
+        logger.debug("Received HR ticket payload for %s: %r", hr_ticket_id, ticket)
+
         subject, message = render_ops_payload(ticket, create_cfg)
+        ops_payload = {
+            "user_id": create_cfg.user_id,
+            "subject": subject,
+            "message": message,
+            "topic_id": create_cfg.topic_id,
+            "dept_id": create_cfg.dept_id,
+        }
+        logger.debug("Ops create_ticket payload for HR ticket %s: %r", ticket.number, ops_payload)
 
         if dry_run:
             logger.info("[dry-run] Would forward HR ticket %s to Ops: %s", ticket.number, subject)
             return ForwardOutcome.WOULD_FORWARD
 
-        created = ops.create_ticket(
-            user_id=create_cfg.user_id,
-            subject=subject,
-            message=message,
-            topic_id=create_cfg.topic_id,
-            dept_id=create_cfg.dept_id,
-        )
+        created = ops.create_ticket(**ops_payload)
     except Exception as exc:
         attempts = state.record_failure(hr_ticket_id, str(exc))
         log = logger.error if attempts >= MAX_FAILURE_ATTEMPTS_BEFORE_ALERT else logger.warning
